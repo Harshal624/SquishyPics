@@ -1,16 +1,41 @@
 package com.harsh.squishypics
 
+import android.content.Intent
 import android.os.Bundle
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import android.view.Menu
 import android.view.MenuItem
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import com.harsh.squishypics.data.CompressQuality
 import com.harsh.squishypics.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+
+    // Registers a photo picker activity launcher in single-select mode.
+    private val pickMedia = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
+        // Callback is invoked after the user selects a media item or closes the
+        // photo picker.
+        if (!uris.isNullOrEmpty()) {
+            uris.forEach { uri ->
+                val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                contentResolver.takePersistableUriPermission(uri, flag)
+
+                SqishyPic.Builder(this@MainActivity)
+                    .setUri(uri)
+                    .setCompressQuality(CompressQuality.LOW)
+                    .start()
+            }
+        } else {
+            Snackbar.make(binding.fab, "No images selected", Snackbar.LENGTH_SHORT)
+                .setAnchorView(R.id.fab)
+                .show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -22,9 +47,7 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
 
         binding.fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAnchorView(R.id.fab)
-                .setAction("Action", null).show()
+            pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
     }
 
